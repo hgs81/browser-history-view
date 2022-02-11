@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1.0, user-scalable=no">
@@ -9,33 +10,46 @@
 	<script type="text/javascript" src="js/moment.min.js"></script>
 	<script type="text/javascript" src="js/tabulator.min.js"></script>
 </head>
+
 <body class="dt-example">
 	<div id="banner"></div>
-	<div id="history-table"></div>
+	<div id="history-table">Loading table...</div>
 	<script>
-	document.getElementById("banner").innerHTML = '<p>Showing ' + data.length + ' history item(s) since ' + moment().subtract(delta, 'seconds').fromNow() + '.</p>';
-	var table = new Tabulator("#history-table", {
-		data: data,
-		columnDefaults:{
-			tooltip:true,
-		},
-		columns: [
-			{ "field": "time", "title": "Time" },
-			// { "field": "domain", "title": "Domain" },
-			{ "field": "title", "title": "Title", widthGrow:2 },
-			{ "field": "url", "title": "URL", widthGrow:3 },
-			{ "field": "visit_count", "title": "Visit Count", width:80 },
-			{ "field": "browser", "title": "Browser", width:100 },
-			{ "field": "profile", "title": "Profile", width:100 }
-		],
-		groupBy:"domain",
-		movableColumns:true,      //allow column order to be changed
-		layout:"fitColumns",
-		maxHeight:"100%",
-		// pagination:"local",
-		// paginationSize:100,
-		// paginationCounter:"rows",
-	});
+		document.getElementById("banner").innerHTML = '<p>Showing ' + data.length + ' history item(s) since ' + moment().subtract(delta, 'seconds').fromNow() + '.</p>';
+		var table = new Tabulator("#history-table", {
+			data: data,
+			columnDefaults: {
+				tooltip: true,
+			},
+			columns: [
+				{ "field": "time", "title": "Time" },
+				// { "field": "domain", "title": "Domain" },
+				{ "field": "title", "title": "Title", widthGrow: 2 },
+				{ "field": "url", "title": "URL", widthGrow: 3 },
+				{ "field": "visit_count", "title": "Visit Count", width: 80 },
+				{ "field": "browser", "title": "Browser", width: 100 },
+				{ "field": "profile", "title": "Profile", width: 100 }
+			],
+			initialSort: [
+				{ column: "time", dir: "desc" },
+			],
+			groupBy: "domain",
+			groupHeader: function (value, count, data, group) {
+				return value + "<span style='color:#d00; margin-left:10px;'>(" + count + " item)</span>"
+							 + (group.isVisible() ? "" : "<span style='color:#777; font-size: 0.8em; margin-left:10px;'>" + data[0]['title'] + "</span>");
+			},
+			groupToggleElement: "header",
+			groupStartOpen: function (value, count, data, group) {
+				return count <= 10;
+			},
+			layout: "fitColumns",
+			maxHeight: "100%",
+			movableColumns: true,
+			// pagination:"local",
+			// paginationSize:100,
+			// paginationCounter:"rows",
+		});
 	</script>
 </body>
+
 </html>

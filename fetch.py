@@ -114,7 +114,7 @@ if delta <= 0:
     print("Usage: python fetch.py 1d|6h|30m|3600")
     sys.exit(0)
 
-print("Fetching %d seconds of browser history." % delta)
+print("Fetching last %d seconds of browser history." % delta)
 
 # run hbd to get all history
 results = []
