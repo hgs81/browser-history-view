@@ -145,6 +145,7 @@ for profile in chrome_profiles_dir:
     pref_file = os.path.join(profile, 'Preferences')
     if not os.path.isfile(pref_file):
         continue
+    os.system('cp "%s" "./%s/"' % (pref_file, profile_name))
     acc_info = {}
     with open(pref_file, 'r') as f:
         try:
