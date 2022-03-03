@@ -43,7 +43,12 @@ def list_history_files(path):
     return history_files
 
 ''' parse history json file '''
-def parse_history_file(history_file, browser, profile = 'Default'):
+def parse_history_file(history_file, browser, profile = 'Default', acc_info = {}):
+    browser = browser.replace('_', ' ').title()
+    full_name = acc_info.get('full_name')
+    email = acc_info.get('email')
+    print("%s | %s | %s | %s" % (browser, profile, full_name, email))
+
     with open(history_file, 'r') as f:
         history_data = json.load(f)
         # print(history_data)
@@ -79,8 +84,10 @@ def parse_history_file(history_file, browser, profile = 'Default'):
             continue
 
         results.append({
-            'browser': browser.replace('_', ' ').title(),
+            'browser': browser,
             'profile': profile,
+            'full_name': full_name,
+            'email': email,
             'domain': domain,
             'url': visit_url,
             'title': visit_title,
@@ -135,15 +142,17 @@ for profile in chrome_profiles_dir:
     # print(profile_name)
 
     # get chrome account name from Preferences file
-    # pref_file = os.path.join(profile, 'Preferences')
-    # acc_info = None
-    # with open(pref_file, 'r') as f:
-    #     pref_data = json.load(f)
-    #     if 'account_info' in pref_data and len(pref_data['account_info']) > 0:
-    #         acc_info = pref_data['account_info'][0]
-    # if acc_info:
-    #     print("%s | %s | %s" % (profile_name, acc_info['full_name'], acc_info['email']))
-    # continue
+    pref_file = os.path.join(profile, 'Preferences')
+    if not os.path.isfile(pref_file):
+        continue
+    acc_info = {}
+    with open(pref_file, 'r') as f:
+        try:
+            pref_data = json.load(f)
+            if 'account_info' in pref_data and len(pref_data['account_info']) > 0:
+                acc_info = pref_data['account_info'][0]
+        except:
+            pass
     
     # run hbd with profile as argument
     if not dry_run:
@@ -151,7 +160,7 @@ for profile in chrome_profiles_dir:
 
     # parse chrome_history.json file
     history_file = os.path.join(os.getcwd(), profile_name, 'chrome_history.json')
-    parse_history_file(history_file, 'chrome', profile_name)
+    parse_history_file(history_file, 'chrome', profile_name, acc_info)
 
 # sort results by visit time
 results.sort(key=lambda x: x['visit_time'], reverse=True)
