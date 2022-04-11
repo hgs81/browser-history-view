@@ -61,9 +61,12 @@ def parse_history_file(history_file, browser, profile = 'Default', acc_info = {}
     # get history within delta time
     for history in history_data:
         # parse isodate string
-        visit_date = parser.parse(history['LastVisitTime'])
-        visit_time = int(visit_date.strftime('%s'))
-        local_time = visit_date.astimezone(tz).strftime("%Y/%m/%d %H:%M:%S")
+        try:
+            visit_date = parser.parse(history['LastVisitTime'])
+            visit_time = int(visit_date.strftime('%s'))
+            local_time = visit_date.astimezone(tz).strftime("%Y/%m/%d %H:%M:%S")
+        except:
+            continue
 
         # stop parsing old history
         if visit_time < (now - delta):
