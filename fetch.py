@@ -33,6 +33,13 @@ def list_chrome_profile(path):
             chrome_profile.append(root)
     return chrome_profile
 
+def list_incogniton_profile(path):
+    incogniton_profile = []
+    for root, dirs, files in os.walk(path):
+        if 'Default' in dirs:
+            incogniton_profile.append(os.path.join(root, 'Default'))
+    return incogniton_profile
+
 ''' list all history json file in specified path '''
 def list_history_files(path):
     history_files = []
@@ -173,6 +180,45 @@ for profile in chrome_profiles_dir:
     # parse chrome_history.json file
     history_file = os.path.join(os.getcwd(), profile_name, 'chrome_history.json')
     parse_history_file(history_file, 'chrome', profile_name, acc_info)
+
+# run hbd with incogniton profile dir
+if sys.platform == 'darwin':
+    incogniton_profiles_dir = list_incogniton_profile(os.path.join(get_home_dir(), 'Library', 'Application Support', 'Incogniton', 'config'))
+elif sys.platform == 'win32':
+    incogniton_profiles_dir = list_incogniton_profile(os.path.join(os.environ.get('APPDATA'), 'Incogniton', 'Incogniton', 'config'))
+else:
+    incogniton_profiles_dir = []
+for profile in incogniton_profiles_dir:
+    profile_name = os.path.basename(os.path.dirname(profile))
+    # print(profile_name)
+
+    # get profile name from Preferences file
+    pref_file = os.path.join(profile, 'Preferences')
+    if not os.path.isfile(pref_file):
+        continue
+    if not os.path.isdir(profile_name):
+        os.mkdir(profile_name)
+    if sys.platform == 'win32':
+        os.system('copy /y "%s" "%s/" >NUL' % (pref_file, profile_name))
+    else:
+        os.system('cp "%s" "./%s/"' % (pref_file, profile_name))
+    acc_info = {}
+    with open(pref_file, 'r', encoding='UTF-8') as f:
+        try:
+            pref_data = json.load(f)
+            if 'profile' in pref_data and len(pref_data['profile']) > 0:
+                acc_info['full_name'] = pref_data['profile']['name']
+        except:
+            pass
+    
+    # run hbd with profile as argument
+    if not dry_run:
+        subprocess.call([HBD, '-b', 'chromium', '-p', profile, '-f', 'json', '--dir', profile_name], stdout=FNULL, stderr=FNULL)
+
+    # parse chromium_history.json file
+    history_file = os.path.join(os.getcwd(), profile_name, 'chromium_history.json')
+    if os.path.isfile(history_file):
+        parse_history_file(history_file, 'incogniton', profile_name, acc_info)
 
 # sort results by visit time
 results.sort(key=lambda x: x['visit_time'])
