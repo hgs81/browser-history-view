@@ -70,7 +70,6 @@ def parse_history_file(history_file, browser, profile = 'Default', acc_info = {}
         # parse isodate string
         try:
             visit_date = parser.parse(history['LastVisitTime'])
-            local_time = visit_date.astimezone().strftime("%Y/%m/%d %H:%M:%S")
         except:
             continue
 
@@ -91,6 +90,17 @@ def parse_history_file(history_file, browser, profile = 'Default', acc_info = {}
         exclude = [item for item in exclude_domains if item in domain]
         if exclude:
             continue
+
+        if sys.version_info[0] < 3:
+            # Python 2.x, Only work on Unix compatible OSes
+            try:
+                tz = '/'.join(os.path.realpath('/etc/localtime').split('/')[-2:])
+                tz = pytz.timezone(tz)
+                local_time = visit_date.astimezone(tz).strftime("%Y/%m/%d %H:%M:%S")
+            except:
+                local_time = visit_date.strftime("%Y/%m/%d %H:%M:%S UTC")
+        else:
+            local_time = visit_date.astimezone().strftime("%Y/%m/%d %H:%M:%S")
 
         results.append({
             'browser': browser,
@@ -166,7 +176,7 @@ for profile in chrome_profiles_dir:
     else:
         os.system('cp "%s" "./%s/"' % (pref_file, profile_name))
     acc_info = {}
-    with open(pref_file, 'rb') as f:
+    with open(pref_file, 'r') as f:
         try:
             pref_data = json.load(f)
             if 'account_info' in pref_data and len(pref_data['account_info']) > 0:
@@ -204,7 +214,7 @@ for profile in incogniton_profiles_dir:
     else:
         os.system('cp "%s" "./%s/"' % (pref_file, profile_name))
     acc_info = {}
-    with open(pref_file, 'rb') as f:
+    with open(pref_file, 'r') as f:
         try:
             pref_data = json.load(f)
             if 'profile' in pref_data and len(pref_data['profile']) > 0:
