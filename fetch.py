@@ -133,7 +133,8 @@ print("Fetching last %d seconds of browser history." % delta)
 # run hbd to get all history
 results = []
 FNULL = open(os.devnull, 'w')
-HBD = 'hbd.exe' if sys.platform == 'win32' else './hbd'
+HBD = os.path.join(os.path.dirname(__file__), 'hbd.exe' if sys.platform == 'win32' else 'hbd')
+print(HBD)
 if not dry_run:
     subprocess.call([HBD, '-f', 'json'], stdout=FNULL, stderr=FNULL)
 
@@ -244,7 +245,7 @@ results.sort(key=lambda x: x['visit_time'])
 #         csv_writer.writerow(row)
 
 # write js
-js_name = os.path.join(os.getcwd(), 'data.js')
+js_name = os.path.join(os.path.dirname(__file__), 'data.js')
 with open(js_name, mode='w', encoding='UTF-8') as f:
     f.write("var delta=%d,data=" % delta);
     json.dump(results, f)
@@ -253,7 +254,8 @@ print("Total %d histories found." % len(results))
 # print(results_by_domain)
 
 # open result page
+HOMEPAGE = os.path.join(os.path.dirname(__file__), 'results.html')
 if sys.platform == 'darwin':
-    subprocess.call(['open', 'results.html'], stdout=FNULL, stderr=FNULL)
+    subprocess.call(['open', HOMEPAGE], stdout=FNULL, stderr=FNULL)
 elif sys.platform == 'win32':
-    subprocess.call(['cmd', '/c', 'start', 'results.html'], stdout=FNULL, stderr=FNULL)
+    subprocess.call(['cmd', '/c', 'start', HOMEPAGE], stdout=FNULL, stderr=FNULL)
