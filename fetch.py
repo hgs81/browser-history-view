@@ -49,7 +49,7 @@ def parse_history_file(history_file, browser, profile = 'Default', acc_info = {}
     email = acc_info.get('email')
     print("%s | %s | %s | %s" % (browser, profile, full_name, email))
 
-    with open(history_file, 'r') as f:
+    with open(history_file, 'r', encoding='UTF-8') as f:
         history_data = json.load(f)
         # print(history_data)
     if not history_data:
@@ -63,13 +63,12 @@ def parse_history_file(history_file, browser, profile = 'Default', acc_info = {}
         # parse isodate string
         try:
             visit_date = parser.parse(history['LastVisitTime'])
-            visit_time = int(visit_date.strftime('%s'))
-            local_time = visit_date.astimezone(tz).strftime("%Y/%m/%d %H:%M:%S")
+            local_time = visit_date.astimezone().strftime("%Y/%m/%d %H:%M:%S")
         except:
             continue
 
         # stop parsing old history
-        if visit_time < (now - delta):
+        if (now - visit_date).total_seconds() > delta:
             break
         
         # filter urls
@@ -102,9 +101,7 @@ def parse_history_file(history_file, browser, profile = 'Default', acc_info = {}
         # print("%s | %s | %s\n%s" % (local_time, domain, visit_title, visit_url))
 
 
-now = int(datetime.now(pytz.utc).strftime('%s'))
-tz = '/'.join(os.path.realpath('/etc/localtime').split('/')[-2:])
-tz = pytz.timezone(tz)
+now = datetime.now(pytz.utc)
 delta = 86400   # defaults to 1d
 
 if len(sys.argv) > 1:
@@ -129,8 +126,9 @@ print("Fetching last %d seconds of browser history." % delta)
 # run hbd to get all history
 results = []
 FNULL = open(os.devnull, 'w')
+HBD = 'hbd.exe' if sys.platform == 'win32' else './hbd'
 if not dry_run:
-    subprocess.call(['./hbd', '-f', 'json'], stdout=FNULL, stderr=FNULL)
+    subprocess.call([HBD, '-f', 'json'], stdout=FNULL, stderr=FNULL)
 
 # parse history json files
 history_files = list_history_files('./results')
@@ -139,7 +137,12 @@ for history_file in history_files:
     parse_history_file(history_file, browser)
 
 # run hbd with custom chrome profile dir
-chrome_profiles_dir = list_chrome_profile(os.path.join(get_home_dir(), 'Library/Application Support/Google/Chrome'))
+if sys.platform == 'darwin':
+    chrome_profiles_dir = list_chrome_profile(os.path.join(get_home_dir(), 'Library', 'Application Support', 'Google', 'Chrome'))
+elif sys.platform == 'win32':
+    chrome_profiles_dir = list_chrome_profile(os.path.join(os.environ.get('LOCALAPPDATA'), 'Google', 'Chrome', 'User Data'))
+else:
+    chrome_profiles_dir = []
 for profile in chrome_profiles_dir:
     profile_name = os.path.basename(profile)
     # print(profile_name)
@@ -148,9 +151,14 @@ for profile in chrome_profiles_dir:
     pref_file = os.path.join(profile, 'Preferences')
     if not os.path.isfile(pref_file):
         continue
-    os.system('cp "%s" "./%s/"' % (pref_file, profile_name))
+    if not os.path.isdir(profile_name):
+        os.mkdir(profile_name)
+    if sys.platform == 'win32':
+        os.system('copy /y "%s" "%s/" >NUL' % (pref_file, profile_name))
+    else:
+        os.system('cp "%s" "./%s/"' % (pref_file, profile_name))
     acc_info = {}
-    with open(pref_file, 'r') as f:
+    with open(pref_file, 'r', encoding='UTF-8') as f:
         try:
             pref_data = json.load(f)
             if 'account_info' in pref_data and len(pref_data['account_info']) > 0:
@@ -160,14 +168,14 @@ for profile in chrome_profiles_dir:
     
     # run hbd with profile as argument
     if not dry_run:
-        subprocess.call(['./hbd', '-b', 'chrome', '-p', profile, '-f', 'json', '--dir', profile_name], stdout=FNULL, stderr=FNULL)
+        subprocess.call([HBD, '-b', 'chrome', '-p', profile, '-f', 'json', '--dir', profile_name], stdout=FNULL, stderr=FNULL)
 
     # parse chrome_history.json file
     history_file = os.path.join(os.getcwd(), profile_name, 'chrome_history.json')
     parse_history_file(history_file, 'chrome', profile_name, acc_info)
 
 # sort results by visit time
-results.sort(key=lambda x: x['visit_time'], reverse=True)
+results.sort(key=lambda x: x['visit_time'])
 
 # print results
 # results_by_domain = {}
@@ -191,7 +199,7 @@ results.sort(key=lambda x: x['visit_time'], reverse=True)
 
 # write js
 js_name = os.path.join(os.getcwd(), 'data.js')
-with open(js_name, mode='w') as f:
+with open(js_name, mode='w', encoding='UTF-8') as f:
     f.write("var delta=%d,data=" % delta);
     json.dump(results, f)
 
@@ -199,4 +207,7 @@ print("Total %d histories found." % len(results))
 # print(results_by_domain)
 
 # open result page
-subprocess.call(['open', 'results.html'], stdout=FNULL, stderr=FNULL)
+if sys.platform == 'darwin':
+    subprocess.call(['open', 'results.html'], stdout=FNULL, stderr=FNULL)
+elif sys.platform == 'win32':
+    subprocess.call(['cmd', '/c', 'start', 'results.html'], stdout=FNULL, stderr=FNULL)
