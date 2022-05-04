@@ -56,7 +56,7 @@ def parse_history_file(history_file, browser, profile = 'Default', acc_info = {}
     email = acc_info.get('email')
     print("%s | %s | %s | %s" % (browser, profile, full_name, email))
 
-    with open(history_file, 'r', encoding='UTF-8') as f:
+    with open(history_file, 'rb') as f:
         history_data = json.load(f)
         # print(history_data)
     if not history_data:
@@ -166,7 +166,7 @@ for profile in chrome_profiles_dir:
     else:
         os.system('cp "%s" "./%s/"' % (pref_file, profile_name))
     acc_info = {}
-    with open(pref_file, 'r', encoding='UTF-8') as f:
+    with open(pref_file, 'rb') as f:
         try:
             pref_data = json.load(f)
             if 'account_info' in pref_data and len(pref_data['account_info']) > 0:
@@ -204,7 +204,7 @@ for profile in incogniton_profiles_dir:
     else:
         os.system('cp "%s" "./%s/"' % (pref_file, profile_name))
     acc_info = {}
-    with open(pref_file, 'r', encoding='UTF-8') as f:
+    with open(pref_file, 'rb') as f:
         try:
             pref_data = json.load(f)
             if 'profile' in pref_data and len(pref_data['profile']) > 0:
@@ -238,7 +238,7 @@ results.sort(key=lambda x: x['visit_time'])
 
 # write csv
 # csv_name = os.path.join(os.getcwd(), 'results.csv')
-# with open(csv_name, mode='w', encoding='UTF-8') as csv_out:
+# with open(csv_name, mode='w') as csv_out:
 #     csv_writer = csv.writer(csv_out, delimiter=',', quotechar='"', lineterminator='\n', quoting=csv.QUOTE_MINIMAL)
 #     # csv_writer.writerow(results[0].keys())
 #     for row in results:
@@ -246,7 +246,7 @@ results.sort(key=lambda x: x['visit_time'])
 
 # write js
 js_name = os.path.join(BASEDIR, 'data.js')
-with open(js_name, mode='w', encoding='UTF-8') as f:
+with open(js_name, mode='w') as f:
     f.write("var delta=%d,data=" % delta);
     json.dump(results, f)
 
