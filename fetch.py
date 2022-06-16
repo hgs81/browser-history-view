@@ -157,6 +157,8 @@ for history_file in history_files:
 # run hbd with custom chrome profile dir
 if sys.platform == 'darwin':
     chrome_profiles_dir = list_chrome_profile(os.path.join(get_home_dir(), 'Library', 'Application Support', 'Google', 'Chrome'))
+elif sys.platform == 'linux':
+    chrome_profiles_dir = list_chrome_profile(os.path.join(get_home_dir(), '.config', 'google-chrome'))
 elif sys.platform == 'win32':
     chrome_profiles_dir = list_chrome_profile(os.path.join(os.environ.get('LOCALAPPDATA'), 'Google', 'Chrome', 'User Data'))
 else:
@@ -267,5 +269,7 @@ print("Total %d histories found." % len(results))
 HOMEPAGE = os.path.join(BASEDIR, 'results.html')
 if sys.platform == 'darwin':
     subprocess.call(['open', HOMEPAGE], stdout=FNULL, stderr=FNULL)
+if sys.platform == 'linux':
+    subprocess.call(['google-chrome', HOMEPAGE], stdout=FNULL, stderr=FNULL)
 elif sys.platform == 'win32':
     subprocess.call(['cmd', '/c', 'start', HOMEPAGE], stdout=FNULL, stderr=FNULL)
