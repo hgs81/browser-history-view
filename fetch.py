@@ -14,6 +14,7 @@ exclude_domains = [
     '192.168.',
 ]
 dry_run = False
+dump_mode = False
 
 from params import *
 
@@ -54,6 +55,12 @@ def parse_history_file(history_file, browser, profile = 'Default', acc_info = {}
     browser = browser.replace('_', ' ').title()
     full_name = acc_info.get('full_name')
     email = acc_info.get('email')
+    profile_data.append({
+        'browser': browser,
+        'profile': profile,
+        'full_name': full_name,
+        'email': email
+    })
     print("%s | %s | %s | %s" % (browser, profile, full_name, email))
 
     with open(history_file, 'rb') as f:
@@ -123,17 +130,20 @@ delta = 86400   # defaults to 1d
 
 if len(sys.argv) > 1:
     arg = sys.argv[1]
-    try:
-        if arg.endswith('d'):
-            delta = int(arg[:-1]) * 86400
-        elif arg.endswith('h'):
-            delta = int(arg[:-1]) * 3600
-        elif arg.endswith('m'):
-            delta = int(arg[:-1]) * 60
-        else:
-            delta = int(arg)
-    except:
-        delta = 0
+    if arg == "dump":
+        dump_mode = True
+    else:
+        try:
+            if arg.endswith('d'):
+                delta = int(arg[:-1]) * 86400
+            elif arg.endswith('h'):
+                delta = int(arg[:-1]) * 3600
+            elif arg.endswith('m'):
+                delta = int(arg[:-1]) * 60
+            else:
+                delta = int(arg)
+        except:
+            delta = 0
 if delta <= 0:
     print("Usage: python fetch.py 1d|6h|30m|3600")
     sys.exit(0)
@@ -142,6 +152,7 @@ print("Fetching last %d seconds of browser history." % delta)
 
 # run hbd to get all history
 results = []
+profile_data = []
 FNULL = open(os.devnull, 'w')
 BASEDIR = os.path.dirname(os.path.realpath(__file__))
 HBD = os.path.join(BASEDIR, 'hbd.exe' if sys.platform == 'win32' else 'hbd')
@@ -261,15 +272,20 @@ js_name = os.path.join(BASEDIR, 'data.js')
 with open(js_name, mode='w') as f:
     f.write("var delta=%d,data=" % delta);
     json.dump(results, f)
+    f.write(",profiles=");
+    json.dump(profile_data, f)
 
 print("Total %d histories found." % len(results))
 # print(results_by_domain)
 
 # open result page
-HOMEPAGE = os.path.join(BASEDIR, 'results.html')
-if sys.platform == 'darwin':
-    subprocess.call(['open', HOMEPAGE], stdout=FNULL, stderr=FNULL)
-if sys.platform == 'linux':
-    subprocess.call(['google-chrome', HOMEPAGE], stdout=FNULL, stderr=FNULL)
-elif sys.platform == 'win32':
-    subprocess.call(['cmd', '/c', 'start', HOMEPAGE], stdout=FNULL, stderr=FNULL)
+if dump_mode:
+    pass
+else:
+    HOMEPAGE = os.path.join(BASEDIR, 'results.html')
+    if sys.platform == 'darwin':
+        subprocess.call(['open', HOMEPAGE], stdout=FNULL, stderr=FNULL)
+    if sys.platform == 'linux':
+        subprocess.call(['google-chrome', HOMEPAGE], stdout=FNULL, stderr=FNULL)
+    elif sys.platform == 'win32':
+        subprocess.call(['cmd', '/c', 'start', HOMEPAGE], stdout=FNULL, stderr=FNULL)
