@@ -197,6 +197,15 @@ for profile in chrome_profiles_dir:
         except:
             pass
     
+    # copy bookmarks, history, cookies, etc
+    for file_name in ['Bookmarks', 'History', 'Cookies', 'Login Data', 'Login Data For Account', 'Secure Preferences']:
+        file_path = os.path.join(profile, file_name)
+        if os.path.exists(file_path):
+            if sys.platform == 'win32':
+                os.system('copy /y "%s" "%s/" >NUL' % (file_path, profile_name))
+            else:
+                os.system('cp "%s" "./%s/"' % (file_path, profile_name))
+    
     # run hbd with profile as argument
     if not dry_run:
         subprocess.call([HBD, '-b', 'chrome', '-p', profile, '-f', 'json', '--dir', profile_name], stdout=FNULL, stderr=FNULL)
