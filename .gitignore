@@ -1,7 +1,13 @@
 data.js
+backup
+bin
 results
 Profile*/
+*-*-*-*/
+Preferences
+profiles.info
 *.pyc
 *.zip
 *.csv
 *.json
+*.php
