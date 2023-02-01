@@ -2,9 +2,9 @@ import os
 import sys
 import json
 import subprocess
-import pytz
 from datetime import datetime
-from dateutil import parser
+
+from yaml import dump
 
 # parameters
 exclude_domains = [
@@ -14,6 +14,7 @@ exclude_domains = [
 ]
 dry_run = False
 dump_mode = False
+delta = 86400   # defaults to 1d
 
 from params import *
 if os.getenv("DRY_RUN"):
@@ -54,25 +55,29 @@ def list_history_files(path):
                 history_files.append(os.path.join(path, file))
     return history_files
 
-''' parse history json file '''
-def parse_history_file(history_file, browser, profile = 'Default', acc_info = {}):
-    browser = browser.replace('_', ' ').title()
+''' add profile info and print to stdout '''
+def add_profile_info(browser, profile = 'Default', acc_info = {}):
     full_name = acc_info.get('full_name')
     email = acc_info.get('email')
-    profile_data.append({
+    profile_info = {
         'browser': browser,
         'profile': profile,
         'full_name': full_name,
         'email': email
-    })
+    }
+    profile_data.append(profile_info)
     print("%s | %s | %s | %s" % (browser, profile, full_name, email))
 
+''' parse history json file '''
+def parse_history_file(history_file, browser, profile = 'Default', acc_info = {}):
     if not os.path.exists(history_file):
         return
     with open(history_file, 'rb') as f:
         history_data = json.load(f)
         # print(history_data)
     if not history_data:
+        return
+    if dump_mode:
         return
 
     # sort history by date
@@ -118,8 +123,8 @@ def parse_history_file(history_file, browser, profile = 'Default', acc_info = {}
         results.append({
             'browser': browser,
             'profile': profile,
-            'full_name': full_name,
-            'email': email,
+            'full_name': acc_info.get('full_name'),
+            'email': acc_info.get('email'),
             'domain': domain,
             'url': visit_url,
             'title': visit_title,
@@ -130,9 +135,6 @@ def parse_history_file(history_file, browser, profile = 'Default', acc_info = {}
 
         # print("%s | %s | %s\n%s" % (local_time, domain, visit_title, visit_url))
 
-
-now = datetime.now(pytz.utc)
-delta = 86400   # defaults to 1d
 
 if len(sys.argv) > 1:
     arg = sys.argv[1]
@@ -154,7 +156,11 @@ if delta <= 0:
     print("Usage: python fetch.py 1d|6h|30m|3600")
     sys.exit(0)
 
-print("Fetching last %d seconds of browser history." % delta)
+if not dump_mode:
+    print("Fetching last %d seconds of browser history." % delta)
+    import pytz
+    from dateutil import parser
+    now = datetime.now(pytz.utc)
 
 # run hbd to get all history
 results = []
@@ -169,7 +175,10 @@ if not dry_run:
 history_files = list_history_files('./results')
 for history_file in history_files:
     browser = os.path.basename(history_file).split('_history.json')[0]
-    parse_history_file(history_file, browser)
+    browser = browser.replace('_', ' ').title()
+    add_profile_info(browser)
+    if not dump_mode:
+        parse_history_file(history_file, browser)
 
 # run hbd with custom chrome profile dir
 if sys.platform == 'darwin':
@@ -216,9 +225,13 @@ for profile in chrome_profiles_dir:
     if not dry_run:
         subprocess.call([HBD, '-b', 'chrome', '-p', profile, '-f', 'json', '--dir', profile_name], stdout=FNULL, stderr=FNULL)
 
-    # parse chrome_history.json file
-    history_file = os.path.join(os.getcwd(), profile_name, 'chrome_history.json')
-    parse_history_file(history_file, 'chrome', profile_name, acc_info)
+    browser = 'Chrome'
+    add_profile_info(browser, profile_name, acc_info)
+    
+    if not dump_mode:
+        # parse chrome_history.json file
+        history_file = os.path.join(os.getcwd(), profile_name, 'chrome_history.json')
+        parse_history_file(history_file, browser, profile_name, acc_info)
 
 # run hbd with incogniton profile dir
 if sys.platform == 'darwin':
@@ -263,9 +276,16 @@ for profile in incogniton_profiles_dir:
     if not dry_run:
         subprocess.call([HBD, '-b', 'chromium', '-p', profile, '-f', 'json', '--dir', profile_name], stdout=FNULL, stderr=FNULL)
 
-    # parse chromium_history.json file
-    history_file = os.path.join(os.getcwd(), profile_name, 'chromium_history.json')
-    parse_history_file(history_file, 'incogniton', profile_name, acc_info)
+    browser = 'Incogniton'
+    add_profile_info(browser, profile_name, acc_info)
+    
+    if not dump_mode:
+        # parse chromium_history.json file
+        history_file = os.path.join(os.getcwd(), profile_name, 'chromium_history.json')
+        parse_history_file(history_file, browser, profile_name, acc_info)
+
+if dump_mode:
+    sys.exit(0)
 
 # sort results by visit time
 results.sort(key=lambda x: x['visit_time'])
@@ -282,13 +302,10 @@ print("Total %d histories found." % len(results))
 # print(results_by_domain)
 
 # open result page
-if dump_mode:
-    pass
-else:
-    HOMEPAGE = os.path.join(BASEDIR, 'results.html')
-    if sys.platform == 'darwin':
-        subprocess.call(['open', HOMEPAGE], stdout=FNULL, stderr=FNULL)
-    if sys.platform == 'linux':
-        subprocess.call(['google-chrome', HOMEPAGE], stdout=FNULL, stderr=FNULL)
-    elif sys.platform == 'win32':
-        subprocess.call(['cmd', '/c', 'start', HOMEPAGE], stdout=FNULL, stderr=FNULL)
+HOMEPAGE = os.path.join(BASEDIR, 'results.html')
+if sys.platform == 'darwin':
+    subprocess.call(['open', HOMEPAGE], stdout=FNULL, stderr=FNULL)
+if sys.platform == 'linux':
+    subprocess.call(['google-chrome', HOMEPAGE], stdout=FNULL, stderr=FNULL)
+elif sys.platform == 'win32':
+    subprocess.call(['cmd', '/c', 'start', HOMEPAGE], stdout=FNULL, stderr=FNULL)
