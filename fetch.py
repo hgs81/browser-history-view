@@ -4,8 +4,6 @@ import json
 import subprocess
 from datetime import datetime
 
-from yaml import dump
-
 # parameters
 exclude_domains = [
     'www.google.com',
