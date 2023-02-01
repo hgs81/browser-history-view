@@ -1,6 +1,5 @@
 import os
 import sys
-import csv
 import json
 import subprocess
 import pytz
@@ -17,6 +16,8 @@ dry_run = False
 dump_mode = False
 
 from params import *
+if os.getenv("DRY_RUN"):
+    dry_run = True
 
 
 ''' get home directory '''
@@ -26,28 +27,31 @@ def get_home_dir():
 ''' list all google chrome profile directory '''
 def list_chrome_profile(path):
     chrome_profile = []
-    for root, dirs, files in os.walk(path):
-        if 'History' in files:
-            profile_name = os.path.basename(root)
-            if profile_name in ['Default', 'System Profile', 'Guest Profile']:
-                continue
-            chrome_profile.append(root)
+    if os.path.exists(path):
+        for root, dirs, files in os.walk(path):
+            if 'History' in files:
+                profile_name = os.path.basename(root)
+                if profile_name in ['Default', 'System Profile', 'Guest Profile']:
+                    continue
+                chrome_profile.append(root)
     return chrome_profile
 
 def list_incogniton_profile(path):
     incogniton_profile = []
-    for root, dirs, files in os.walk(path):
-        if 'Default' in dirs:
-            incogniton_profile.append(os.path.join(root, 'Default'))
+    if os.path.exists(path):
+        for root, dirs, files in os.walk(path):
+            if 'Default' in dirs:
+                incogniton_profile.append(os.path.join(root, 'Default'))
     return incogniton_profile
 
 ''' list all history json file in specified path '''
 def list_history_files(path):
     history_files = []
-    for file in os.listdir(path):
-        file_name = os.path.basename(file)
-        if file_name.endswith('_history.json'):
-            history_files.append(os.path.join(path, file))
+    if os.path.exists(path):
+        for file in os.listdir(path):
+            file_name = os.path.basename(file)
+            if file_name.endswith('_history.json'):
+                history_files.append(os.path.join(path, file))
     return history_files
 
 ''' parse history json file '''
@@ -63,6 +67,8 @@ def parse_history_file(history_file, browser, profile = 'Default', acc_info = {}
     })
     print("%s | %s | %s | %s" % (browser, profile, full_name, email))
 
+    if not os.path.exists(history_file):
+        return
     with open(history_file, 'rb') as f:
         history_data = json.load(f)
         # print(history_data)
@@ -259,31 +265,10 @@ for profile in incogniton_profiles_dir:
 
     # parse chromium_history.json file
     history_file = os.path.join(os.getcwd(), profile_name, 'chromium_history.json')
-    if os.path.isfile(history_file):
-        parse_history_file(history_file, 'incogniton', profile_name, acc_info)
+    parse_history_file(history_file, 'incogniton', profile_name, acc_info)
 
 # sort results by visit time
 results.sort(key=lambda x: x['visit_time'])
-
-# print results
-# results_by_domain = {}
-# for data in results:
-#     print("%s | %s - %s | %s | %s\n%s" % (
-#         data['time'], data['browser'], data['profile'],
-#         data['domain'], data['title'], data['url']
-#     ))
-#     domain = data['domain']
-#     if not domain in results_by_domain:
-#         results_by_domain[domain] = []
-#     results_by_domain[domain].append([data['time'], data['browser'], data['profile'], data['title'], data['url']])
-
-# write csv
-# csv_name = os.path.join(os.getcwd(), 'results.csv')
-# with open(csv_name, mode='w') as csv_out:
-#     csv_writer = csv.writer(csv_out, delimiter=',', quotechar='"', lineterminator='\n', quoting=csv.QUOTE_MINIMAL)
-#     # csv_writer.writerow(results[0].keys())
-#     for row in results:
-#         csv_writer.writerow(row)
 
 # write js
 js_name = os.path.join(BASEDIR, 'data.js')

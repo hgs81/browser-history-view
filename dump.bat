@@ -4,6 +4,4 @@ setlocal
 if not exist backup mkdir backup
 set TIMESTRING=%DATE:/=_%
 
-if "%DRY_RUN%" equ "" python fetch.py dump > profiles.info
-bin\7z.exe a -tzip backup\results-%USERNAME%-%TIMESTRING: =_%.zip . -x!*.py* x!*.zip -x!*.exe -x!hbd -x!*.txt -x!*.bat -x!*.sh -xr!.* -xr!backup -xr!bin -xr!__pycache__
-endlocal
+python fetch.py dump | bin\zip.exe -r backup\results-%USERNAME%-%TIMESTRING: =_%.zip . -x "*.zip" -x "backup/*" -x "bin/*" -x "*.exe" -x "hbd" -x "*.txt" -x "*.bat" -x "*.sh" -x "*.php" -x "*.py" -x "*.pyc" -x "*__pycache__/*" -x "*.gitignore" -x ".git/*" -x "*.DS_Store*" -z

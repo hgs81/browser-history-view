@@ -1,5 +1,4 @@
 @echo off
 setlocal
-cd /d "%temp%"
+cd /d "%~dp0"
 python %~dp0fetch.py %*
-endlocal
