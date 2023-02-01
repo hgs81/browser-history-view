@@ -304,7 +304,7 @@ if len(sys.argv) > 1:
     if arg == "dump":
         dump_mode = True
         if len(sys.argv) > 2:
-            dump_mode = sys.argv[2]
+            dump_mode = sys.argv[2].lower()
     else:
         try:
             if arg.endswith('d'):
@@ -378,7 +378,7 @@ for profile_path in chrome_profiles_dir:
     
     if dump_mode:
         copy_files(profile_path, output_dir)
-        if dump_mode in ['full', 'chrome', profile_name]:
+        if dump_mode in ['full', 'chrome', profile_name.lower()]:
             dump_profile(profile_path, browser + profile_name, comment=comment)
     else:
         # parse chrome_history.json file
@@ -414,7 +414,7 @@ for profile_path in incogniton_profiles_dir:
 
     if dump_mode:
         copy_files(profile_path, output_dir)
-        if dump_mode in ['full', 'incogniton', profile_name, full_name]:
+        if dump_mode in ['full', 'incogniton', profile_name.lower(), full_name.lower()]:
             dump_profile(profile_path, full_name + profile_name[0:8], comment=comment)
     else:
         # parse chromium_history.json file
