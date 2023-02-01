@@ -213,7 +213,7 @@ def dump_profile(profile_path, dump_prefix, comment = None):
     profile_name = os.path.basename(profile_path)
     output_name = "%s_%s.zip" % (
         "".join(x for x in dump_prefix if x.isalnum() or x in "._-"),
-        datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        datetime.now().strftime("%Y%m%d%H%M%S")
     )
     args = get_paths_to_zip(profile=profile_name)
     for item in exclude_files:
@@ -226,7 +226,7 @@ def dump_results(comment = None):
     os.chdir(BASEDIR)
     output_name = "results_%s_%s.zip" % (
         "".join(x for x in os.getlogin() if x.isalnum() or x in "._-"),
-        datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        datetime.now().strftime("%Y%m%d%H%M%S")
     )
     print("Dumping results as %s/%s ..." % (dump_dir, output_name))
     zip_files(os.path.join(DUMPDIR, output_name), output_files, comment)
