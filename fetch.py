@@ -303,8 +303,8 @@ if len(sys.argv) > 1:
     arg = sys.argv[1]
     if arg == "dump":
         dump_mode = True
-        if len(sys.argv) > 2 and sys.argv[2] == "full":
-            dump_mode = "full"
+        if len(sys.argv) > 2:
+            dump_mode = sys.argv[2]
     else:
         try:
             if arg.endswith('d'):
@@ -378,7 +378,7 @@ for profile_path in chrome_profiles_dir:
     
     if dump_mode:
         copy_files(profile_path, output_dir)
-        if dump_mode == 'full':
+        if dump_mode in ['full', 'chrome', profile_name]:
             dump_profile(profile_path, browser + profile_name, comment=comment)
     else:
         # parse chrome_history.json file
@@ -402,6 +402,7 @@ for profile_path in incogniton_profiles_dir:
         os.mkdir(output_dir)
     
     acc_info = get_chromium_acc_info(profile_path)
+    full_name = acc_info.get('full_name')
     comment = add_profile_info(browser, profile_name, acc_info)
     comments.append(comment)
     if profile_name != 'Default':
@@ -413,8 +414,8 @@ for profile_path in incogniton_profiles_dir:
 
     if dump_mode:
         copy_files(profile_path, output_dir)
-        if dump_mode == 'full':
-            dump_profile(profile_path, acc_info.get('full_name') + profile_name[0:8], comment=comment)
+        if dump_mode in ['full', 'incogniton', profile_name, full_name]:
+            dump_profile(profile_path, full_name + profile_name[0:8], comment=comment)
     else:
         # parse chromium_history.json file
         history_file = os.path.join(os.getcwd(), output_dir, 'chromium_history.json')
