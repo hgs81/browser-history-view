@@ -422,7 +422,8 @@ for profile_path in incogniton_profiles_dir:
         parse_history_file(history_file, browser, output_dir, acc_info)
 
 if dump_mode:
-    dump_results(comment="\n".join(comments))
+    if dump_mode == True or dump_mode == 'full':
+        dump_results(comment="\n".join(comments))
     sys.exit(0)
 
 # sort results by visit time
