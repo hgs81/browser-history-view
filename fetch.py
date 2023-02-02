@@ -422,7 +422,7 @@ for profile_path in incogniton_profiles_dir:
         parse_history_file(history_file, browser, output_dir, acc_info)
 
 if dump_mode:
-    if dump_mode == True or dump_mode == 'full':
+    if dump_mode == True or dump_mode in ['full', 'chrome']:
         dump_results(comment="\n".join(comments))
     sys.exit(0)
 
