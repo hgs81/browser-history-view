@@ -12,7 +12,9 @@ exclude_domains = [
 ]
 exclude_files = [
     # '*cjpalhdlnbpafiamejdnhcphjbkeiagm*',
-    '*Extensions/cjpalhdlnbpafiamejdnhcphjbkeiagm*',
+    '*Extensions/cjpalhdlnbpafiamejdnhcphjbkeiagm*',    # uBlockOrigin
+    '*Extensions/hdokiejnpimakedhajhdlcegeplioahd*',    # LastPass
+    '*Extensions/nkbihfbeogaeaoehlefnkodbefgpgknn*',    # MetaMask
     '*IndexedDB/*.google.com*',
 ]
 dump_dir = 'backup'
