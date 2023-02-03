@@ -124,11 +124,8 @@ def list_chrome_profile(path = None):
         for root, dirs, files in os.walk(path):
             if 'History' in files:
                 profile_name = os.path.basename(root)
-                if profile_name in ['System Profile', 'Guest Profile']:
+                if profile_name in ['Default', 'System Profile', 'Guest Profile']:
                     continue
-                if profile_name == 'Default':
-                    if not dump_mode:
-                        continue
                 chrome_profile.append(root)
     return chrome_profile
 
@@ -399,9 +396,10 @@ for history_file in history_files:
     
     profile_name_ns = "".join(x for x in profile_name if x.isalnum() or x in "._-")
     output_dir = os.path.join('results', browser_name + profile_name_ns)
-    if not os.path.isdir(output_dir):
-        os.mkdir(output_dir)
-    copy_files(browser, profile_path, output_dir)
+    if not dry_run:
+        if not os.path.isdir(output_dir):
+            os.mkdir(output_dir)
+        copy_files(browser, profile_path, output_dir)
     
     acc_info = get_chrome_acc_info(profile_path)
     comment = add_profile_info(browser_name, profile_name, acc_info)
@@ -410,7 +408,7 @@ for history_file in history_files:
         print(comment)
     
     if dump_mode:
-        if dump_mode in ['full', 'main', profile, profile_name.lower(), profile_name_ns.lower()]:
+        if dump_mode in ['full', 'main', browser, profile, profile_name.lower(), profile_name_ns.lower()]:
             dump_profile(profile_path, browser_name + profile_name, comment=comment)
     else:
         parse_history_file(history_file, browser_name, profile_name, acc_info)
