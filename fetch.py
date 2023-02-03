@@ -17,9 +17,10 @@ exclude_files = [
     '*Extensions/nkbihfbeogaeaoehlefnkodbefgpgknn*',    # MetaMask
     '*IndexedDB/*.google.com*',
 ]
-dump_dir = 'backup'
 dry_run = False
+run_mode = 'all'
 dump_mode = False
+dump_dir = 'backup'
 delta = 86400   # defaults to 1d
 
 from params import *
@@ -110,8 +111,15 @@ def get_paths_to_zip(oftenChange = True, staticChange = True, extensionData = Tr
     return list
 
 ''' list all google chrome profile directory '''
-def list_chrome_profile(path):
+def list_chrome_profile(path = None):
     chrome_profile = []
+    if not path:
+        if sys.platform == 'darwin':
+            path = os.path.join(get_home_dir(), 'Library', 'Application Support', 'Google', 'Chrome')
+        elif sys.platform == 'linux':
+            path = os.path.join(get_home_dir(), '.config', 'google-chrome')
+        elif sys.platform == 'win32':
+            path = os.path.join(os.environ.get('LOCALAPPDATA'), 'Google', 'Chrome', 'User Data')
     if os.path.exists(path):
         for root, dirs, files in os.walk(path):
             if 'History' in files:
@@ -124,8 +132,13 @@ def list_chrome_profile(path):
                 chrome_profile.append(root)
     return chrome_profile
 
-def list_incogniton_profile(path):
+def list_incogniton_profile(path = None):
     incogniton_profile = []
+    if not path:
+        if sys.platform == 'darwin':
+            path = os.path.join(get_home_dir(), 'Library', 'Application Support', 'Incogniton', 'config')
+        elif sys.platform == 'win32':
+            path = os.path.join(os.environ.get('APPDATA'), 'Incogniton', 'Incogniton', 'config')
     if os.path.exists(path):
         for root, dirs, files in os.walk(path):
             if 'Default' in dirs:
@@ -142,6 +155,17 @@ def list_history_files(path):
                 history_files.append(os.path.join(path, file))
     return history_files
 
+''' get chrome profile path '''
+def get_chrome_profile_path(index = 0):
+    profile_path = None
+    if sys.platform == 'darwin':
+        profile_path = os.path.join(get_home_dir(), 'Library', 'Application Support', 'Google', 'Chrome', 'Profile ' + str(index) if index else 'Default')
+    elif sys.platform == 'linux':
+        profile_path = os.path.join(get_home_dir(), '.config', 'google-chrome', 'Profile ' + str(index) if index else 'Default')
+    elif sys.platform == 'win32':
+        profile_path = os.path.join(os.environ.get('LOCALAPPDATA'), 'Google', 'Chrome', 'User Data', 'Profile ' + str(index) if index else 'Default')
+    return profile_path
+    
 ''' get chrome account info from preference file '''
 def get_chrome_acc_info(profile_path):
     acc_info = {}
@@ -184,14 +208,21 @@ def add_profile_info(browser, profile = 'Default', acc_info = {}):
     return infostr
 
 ''' copy bookmarks, history, cookies, etc '''
-def copy_files(profile_path, output_dir):
-    for file_name in ['Bookmarks', 'History', 'Cookies', 'Login Data', 'Login Data For Account', 'Preferences', 'Secure Preferences']:
+def copy_files(browser, profile_path, output_dir):
+    for file_name in ['Bookmarks', 'History', 'Cookies', os.path.join('Network', 'Cookies'), 'Login Data', 'Login Data For Account', 'Preferences', 'Secure Preferences']:
         file_path = os.path.join(profile_path, file_name)
         if os.path.exists(file_path):
             if sys.platform == 'win32':
                 os.system('copy /y "%s" "%s/" >NUL' % (file_path, output_dir))
             else:
                 os.system('cp "%s" "./%s/"' % (file_path, output_dir))
+    
+    key_file = os.path.join(BASEDIR, browser + 'Key')
+    if os.path.exists(key_file):
+        if sys.platform == 'win32':
+            os.system('copy /y "%s" "%s/" >NUL' % (key_file, output_dir))
+        else:
+            os.system('cp "%s" "./%s/"' % (key_file, output_dir))
 
 def zip_files(output_path, arg_list, comment = None, quiet = True):
     args = [ZIP, '-r', output_path]
@@ -259,7 +290,7 @@ def parse_history_file(history_file, browser, profile = 'Default', acc_info = {}
             break
         
         # filter urls
-        visit_url = history['Url']
+        visit_url = history['Url'] if 'Url' in history else history['URL']
         visit_title = history['Title']
         schema = visit_url.split('://')[0]
         # if schema in ['file', 'chrome', 'about', 'chrome-extension']:
@@ -317,6 +348,8 @@ if len(sys.argv) > 1:
                 delta = int(arg)
         except:
             delta = 0
+        if len(sys.argv) > 2:
+            run_mode = sys.argv[2].lower()
 if delta <= 0:
     print("Usage: python fetch.py 1d|6h|30m|3600")
     sys.exit(0)
@@ -327,99 +360,138 @@ if not dump_mode:
     from dateutil import parser
     now = datetime.now(pytz.utc)
 
-# run hbd to get all history
 results = []
 comments = []
-output_files = []
 profile_data = []
+output_files = ['results', 'css', 'js', 'data.js', 'results.html']
+result_has_multiple_user_profiles = False   # True if using hbd v0.4.3+
+
+# run hbd to get all history
 if not dry_run:
     subprocess.call([HBD, '-f', 'json'], stdout=FNULL, stderr=FNULL)
 
 # parse main history json files
 history_files = list_history_files('./results')
-if len(history_files) > 0:
-    output_files.extend(['results', 'css', 'js', 'data.js', 'results.html'])
 for history_file in history_files:
-    browser = os.path.basename(history_file).split('_history.json')[0]
-    browser = browser.replace('_', ' ').title()
-    comment = add_profile_info(browser)
-    comments.append(comment)
-    print(comment)
+    prefix = os.path.basename(history_file).split('_history.json')[0]
+    browser = prefix
+    profile = 'default'
+    index = 0
+    if '_' in prefix:
+        browser = prefix.split('_')[0]
+        profile = prefix[len(browser)+1:]
+        if profile != 'default':
+            try:
+                index = int(prefix.split('_')[-1])
+                result_has_multiple_user_profiles = True
+            except:
+                continue
+    
     if not dump_mode:
-        parse_history_file(history_file, browser)
-
-# run hbd with custom chrome profile dir
-if sys.platform == 'darwin':
-    chrome_profiles_dir = list_chrome_profile(os.path.join(get_home_dir(), 'Library', 'Application Support', 'Google', 'Chrome'))
-elif sys.platform == 'linux':
-    chrome_profiles_dir = list_chrome_profile(os.path.join(get_home_dir(), '.config', 'google-chrome'))
-elif sys.platform == 'win32':
-    chrome_profiles_dir = list_chrome_profile(os.path.join(os.environ.get('LOCALAPPDATA'), 'Google', 'Chrome', 'User Data'))
-else:
-    chrome_profiles_dir = []
-for profile_path in chrome_profiles_dir:
-    browser = 'Chrome'
-    profile_name = os.path.basename(profile_path)
-    # print(profile_name)
-    output_dir = browser + ' ' + profile_name
-    output_files.append(output_dir)
+        if run_mode != 'all' and run_mode != 'main' and run_mode != browser:
+            continue
+    
+    browser_name = browser.title()
+    profile_name = profile.replace('_', ' ').title()
+    profile_path = get_chrome_profile_path(index)
+    if not profile_path:
+        continue
+    
+    profile_name_ns = "".join(x for x in profile_name if x.isalnum() or x in "._-")
+    output_dir = os.path.join('results', browser_name + profile_name_ns)
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
+    copy_files(browser, profile_path, output_dir)
     
     acc_info = get_chrome_acc_info(profile_path)
-    comment = add_profile_info(browser, profile_name, acc_info)
+    comment = add_profile_info(browser_name, profile_name, acc_info)
     comments.append(comment)
-    if profile_name != 'Default':
+    if isinstance(dump_mode, bool) or dump_mode == 'full' or dump_mode == browser:
         print(comment)
     
-    # run hbd with profile_path as argument
-    if not dry_run:
-        subprocess.call([HBD, '-b', 'chrome', '-p', profile_path, '-f', 'json', '--dir', output_dir], stdout=FNULL, stderr=FNULL)
-    
     if dump_mode:
-        copy_files(profile_path, output_dir)
-        if dump_mode in ['full', 'chrome', profile_name.lower()]:
-            dump_profile(profile_path, browser + profile_name, comment=comment)
+        if dump_mode in ['full', 'main', 'chrome', profile, profile_name.lower(), profile_name_ns.lower()]:
+            dump_profile(profile_path, browser_name + profile_name, comment=comment)
     else:
-        # parse chrome_history.json file
-        history_file = os.path.join(os.getcwd(), output_dir, 'chrome_history.json')
-        parse_history_file(history_file, browser, output_dir, acc_info)
+        parse_history_file(history_file, browser_name, profile_name, acc_info)
 
-# run hbd with incogniton profile dir
-if sys.platform == 'darwin':
-    incogniton_profiles_dir = list_incogniton_profile(os.path.join(get_home_dir(), 'Library', 'Application Support', 'Incogniton', 'config'))
-elif sys.platform == 'win32':
-    incogniton_profiles_dir = list_incogniton_profile(os.path.join(os.environ.get('APPDATA'), 'Incogniton', 'Incogniton', 'config'))
-else:
-    incogniton_profiles_dir = []
-for profile_path in incogniton_profiles_dir:
-    browser = 'Incogniton'
-    profile_name = os.path.basename(os.path.dirname(profile_path))
-    # print(profile_name)
-    output_dir = profile_name
-    output_files.append(output_dir)
-    if not os.path.isdir(output_dir):
-        os.mkdir(output_dir)
-    
-    acc_info = get_chromium_acc_info(profile_path)
-    full_name = acc_info.get('full_name')
-    comment = add_profile_info(browser, profile_name, acc_info)
-    comments.append(comment)
-    if profile_name != 'Default':
-        print(comment)
+if dump_mode or run_mode in ['all', 'chrome']:
+    # run hbd with custom chrome profile dir
+    chrome_profiles_dir = list_chrome_profile()
+    for profile_path in chrome_profiles_dir:
+        browser = 'chrome'
+        browser_name = browser.title()
+        profile_name = os.path.basename(profile_path)
+        # print(profile_name)
+        if result_has_multiple_user_profiles:
+            if profile_name == 'Default' or profile_name.startswith('Profile '):
+                continue
+        
+        profile_name_ns = "".join(x for x in profile_name if x.isalnum() or x in "._-")
+        output_dir = os.path.join('results', browser_name + profile_name_ns)
+        # output_files.append(output_dir)
+        if not os.path.isdir(output_dir):
+            os.mkdir(output_dir)
+        
+        acc_info = get_chrome_acc_info(profile_path)
+        comment = add_profile_info(browser_name, profile_name, acc_info)
+        if profile_name != 'Default':
+            comments.append(comment)
+            if isinstance(dump_mode, bool) or dump_mode == 'full' or dump_mode == browser:
+                print(comment)
+        
+        # run hbd with profile_path as argument
+        if not dry_run:
+            subprocess.call([HBD, '-b', 'chrome', '-p', profile_path, '-f', 'json', '--dir', output_dir], stdout=FNULL, stderr=FNULL)
+            copy_files(browser, profile_path, output_dir)
+        
+        if dump_mode:
+            if dump_mode in ['full', 'chrome', profile_name.lower(), profile_name_ns.lower()]:
+                dump_profile(profile_path, browser_name + profile_name, comment=comment)
+        else:
+            # parse chrome history file
+            history_file = os.path.join(os.getcwd(), output_dir, 'chrome_default_history.json')   # hbd v0.4.3+
+            if not os.path.exists(history_file):
+                history_file = os.path.join(os.getcwd(), output_dir, 'chrome_history.json')
+            parse_history_file(history_file, browser_name, profile_name, acc_info)
 
-    # run hbd with profile_path as argument
-    if not dry_run:
-        subprocess.call([HBD, '-b', 'chromium', '-p', profile_path, '-f', 'json', '--dir', output_dir], stdout=FNULL, stderr=FNULL)
+if dump_mode or run_mode in ['all', 'incogniton']:
+    # run hbd with incogniton profile dir
+    incogniton_profiles_dir = list_incogniton_profile()
+    for profile_path in incogniton_profiles_dir:
+        browser = 'incogniton'
+        browser_name = browser.title()
+        profile_name = os.path.basename(os.path.dirname(profile_path))
+        # print(profile_name)
+        
+        profile_name_ns = "".join(x for x in profile_name if x.isalnum() or x in "._-")
+        output_dir = os.path.join('results', browser_name + profile_name_ns)
+        # output_files.append(output_dir)
+        if not os.path.isdir(output_dir):
+            os.mkdir(output_dir)
+        
+        acc_info = get_chromium_acc_info(profile_path)
+        full_name = acc_info.get('full_name')
+        full_name_ns = "".join(x for x in full_name if x.isalnum() or x in "._-")
+        comment = add_profile_info(browser_name, profile_name, acc_info)
+        comments.append(comment)
+        if isinstance(dump_mode, bool) or dump_mode == 'full' or dump_mode == browser:
+            print(comment)
 
-    if dump_mode:
-        copy_files(profile_path, output_dir)
-        if dump_mode in ['full', 'incogniton', profile_name.lower(), full_name.lower()]:
-            dump_profile(profile_path, full_name + profile_name[0:8], comment=comment)
-    else:
-        # parse chromium_history.json file
-        history_file = os.path.join(os.getcwd(), output_dir, 'chromium_history.json')
-        parse_history_file(history_file, browser, output_dir, acc_info)
+        # run hbd with profile_path as argument
+        if not dry_run:
+            subprocess.call([HBD, '-b', 'chromium', '-p', profile_path, '-f', 'json', '--dir', output_dir], stdout=FNULL, stderr=FNULL)
+            copy_files('chromium', profile_path, output_dir)
+
+        if dump_mode:
+            if dump_mode in ['full', 'incogniton', profile_name.lower(), full_name.lower()]:
+                dump_profile(profile_path, browser_name + full_name_ns + profile_name[0:8], comment=comment)
+        else:
+            # parse chromium history file
+            history_file = os.path.join(os.getcwd(), output_dir, 'chromium_default_history.json')   # hbd v0.4.3+
+            if not os.path.exists(history_file):
+                history_file = os.path.join(os.getcwd(), output_dir, 'chromium_history.json')
+            parse_history_file(history_file, browser_name, profile_name, acc_info)
 
 if dump_mode:
     if dump_mode == True or dump_mode in ['full', 'chrome']:
