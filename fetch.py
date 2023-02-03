@@ -363,7 +363,7 @@ if not dump_mode:
 results = []
 comments = []
 profile_data = []
-output_files = ['results', 'css', 'js', 'data.js', 'results.html']
+output_files = ['results']   # ['results', 'css', 'js', 'data.js', 'results.html']
 result_has_multiple_user_profiles = False   # True if using hbd v0.4.3+
 
 # run hbd to get all history
