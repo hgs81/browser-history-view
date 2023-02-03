@@ -9,14 +9,21 @@ exclude_domains = [
     '.local',
 ]
 exclude_files = [
+    # uBlockOrigin
     # '*cjpalhdlnbpafiamejdnhcphjbkeiagm*',
-    '*Extensions/cjpalhdlnbpafiamejdnhcphjbkeiagm*',    # uBlockOrigin
-    '*Extensions/hdokiejnpimakedhajhdlcegeplioahd*',    # LastPass
-    '*Extensions/nkbihfbeogaeaoehlefnkodbefgpgknn*',    # MetaMask
-    '*Extensions/kbfnbcaeplbcioakkpcpgfkobkghlhen*',    # Grammarly
-    '*Extensions/liecbddmkiiihnedobmlmillhodjkdmb*',    # Loom – Screen Recorder & Screen Capture
-    '*Extensions/laookkfknpbbblfpciffpaejjkokdgca*',    # Momentum
-    '*Extensions/lpcaedmchfhocbbapmcbpinfpgnhiddi*',    # Google Keep
+    '*Extensions/cjpalhdlnbpafiamejdnhcphjbkeiagm*',
+    # LastPass
+    '*Extensions/hdokiejnpimakedhajhdlcegeplioahd*',
+    # MetaMask
+    '*Extensions/nkbihfbeogaeaoehlefnkodbefgpgknn*',
+    # Grammarly
+    '*Extensions/kbfnbcaeplbcioakkpcpgfkobkghlhen*',
+    # Loom – Screen Recorder & Screen Capture
+    '*Extensions/liecbddmkiiihnedobmlmillhodjkdmb*',
+    # Momentum
+    '*Extensions/laookkfknpbbblfpciffpaejjkokdgca*',
+    # Google Keep
+    '*Extensions/lpcaedmchfhocbbapmcbpinfpgnhiddi*',
     '*IndexedDB/*.hopanatech.com*',
     '*IndexedDB/*.google.com*',
     '*IndexedDB/*.codesignal.com*',
