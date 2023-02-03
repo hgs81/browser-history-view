@@ -14,9 +14,10 @@ exclude_files = [
     '*Extensions/hdokiejnpimakedhajhdlcegeplioahd*',    # LastPass
     '*Extensions/nkbihfbeogaeaoehlefnkodbefgpgknn*',    # MetaMask
     '*Extensions/kbfnbcaeplbcioakkpcpgfkobkghlhen*',    # Grammarly
-    '*Extensions/liecbddmkiiihnedobmlmillhodjkdmb*',    # Loom - Screen Recorder & Screen Capture
     '*Extensions/laookkfknpbbblfpciffpaejjkokdgca*',    # Momentum
     '*Extensions/lpcaedmchfhocbbapmcbpinfpgnhiddi*',    # Google Keep
+    '*liecbddmkiiihnedobmlmillhodjkdmb*',    # Loom - Screen Recorder & Screen Capture
+    '*hniebljpgcogalllopnjokppmgbhaden*',    # Screen Recorder - Scre.io
     '*IndexedDB/*.hopanatech.com*',
     '*IndexedDB/*.google.com*',
     '*IndexedDB/*.codesignal.com*',
