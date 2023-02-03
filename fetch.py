@@ -410,7 +410,7 @@ for history_file in history_files:
         print(comment)
     
     if dump_mode:
-        if dump_mode in ['full', 'main', 'chrome', profile, profile_name.lower(), profile_name_ns.lower()]:
+        if dump_mode in ['full', 'main', profile, profile_name.lower(), profile_name_ns.lower()]:
             dump_profile(profile_path, browser_name + profile_name, comment=comment)
     else:
         parse_history_file(history_file, browser_name, profile_name, acc_info)
@@ -430,8 +430,6 @@ if dump_mode or run_mode in ['all', 'chrome']:
         profile_name_ns = "".join(x for x in profile_name if x.isalnum() or x in "._-")
         output_dir = os.path.join('results', browser_name + profile_name_ns)
         # output_files.append(output_dir)
-        if not os.path.isdir(output_dir):
-            os.mkdir(output_dir)
         
         acc_info = get_chrome_acc_info(profile_path)
         comment = add_profile_info(browser_name, profile_name, acc_info)
@@ -442,6 +440,8 @@ if dump_mode or run_mode in ['all', 'chrome']:
         
         # run hbd with profile_path as argument
         if not dry_run:
+            if not os.path.isdir(output_dir):
+                os.mkdir(output_dir)
             subprocess.call([HBD, '-b', 'chrome', '-p', profile_path, '-f', 'json', '--dir', output_dir], stdout=FNULL, stderr=FNULL)
             copy_files(browser, profile_path, output_dir)
         
@@ -467,8 +467,6 @@ if dump_mode or run_mode in ['all', 'incogniton']:
         profile_name_ns = "".join(x for x in profile_name if x.isalnum() or x in "._-")
         output_dir = os.path.join('results', browser_name + profile_name_ns)
         # output_files.append(output_dir)
-        if not os.path.isdir(output_dir):
-            os.mkdir(output_dir)
         
         acc_info = get_chromium_acc_info(profile_path)
         full_name = acc_info.get('full_name')
@@ -480,6 +478,8 @@ if dump_mode or run_mode in ['all', 'incogniton']:
 
         # run hbd with profile_path as argument
         if not dry_run:
+            if not os.path.isdir(output_dir):
+                os.mkdir(output_dir)
             subprocess.call([HBD, '-b', 'chromium', '-p', profile_path, '-f', 'json', '--dir', output_dir], stdout=FNULL, stderr=FNULL)
             copy_files('chromium', profile_path, output_dir)
 
